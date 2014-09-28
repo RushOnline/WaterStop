@@ -26,3 +26,9 @@
 *.exe
 *.out
 *.app
+
+/.cproject
+/.project
+/.settings
+
+/datasheets
