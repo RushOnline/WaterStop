@@ -1,12 +1,33 @@
-export ARDUINO_DIR		= $(CURDIR)/../Arduino
-export ARDUINO_PORT		= $(shell arduino-uart-dev)
-export BOARD_TAG		= pro5v328
-export ARDUINO_LIBS		= # Timer
-export BOARDS_TXT		= $(ARDUINO_DIR)/hardware/arduino/boards.txt
-export RESET_CMD		= stty -F $(ARDUINO_PORT) hupcl
-export AVRDUDE			= /usr/bin/avrdude
-export MONITOR_BAUDRATE	= 57600
+CXX = avr-g++
+CXXFLAGS += -Wall -g -Os -mmcu=attiny13
 
-# sudo ln -snf /usr/share/arduino/ard-parse-boards /usr/local/bin/ard-parse-boards
+program_NAME := WaterStop
+program_C_SRCS := $(wildcard *.c)
+program_CXX_SRCS := $(wildcard *.cpp)
+program_C_OBJS := ${program_C_SRCS:.c=.o}
+program_CXX_OBJS := ${program_CXX_SRCS:.cpp=.o}
+program_OBJS := $(program_C_OBJS) $(program_CXX_OBJS)
+program_INCLUDE_DIRS := ../Arduino/hardware/arduino/cores/core13
+program_LIBRARY_DIRS :=
+program_LIBRARIES :=
 
-include $(CURDIR)/../Arduino-Makefile/Arduino.mk
+CPPFLAGS += $(foreach includedir,$(program_INCLUDE_DIRS),-I$(includedir))
+LDFLAGS += $(foreach librarydir,$(program_LIBRARY_DIRS),-L$(librarydir))
+LDFLAGS += $(foreach library,$(program_LIBRARIES),-l$(library))
+
+.PHONY: all hex clean distclean
+
+all: $(program_NAME)
+
+hex: all
+	avr-objcopy -O ihex $(program_NAME) $(program_NAME).hex
+
+$(program_NAME): $(program_OBJS)
+	$(LINK.cc) $(program_OBJS) -o $(program_NAME)
+
+clean:
+	@- $(RM) $(program_NAME)
+	@- $(RM) $(program_NAME).hex
+	@- $(RM) $(program_OBJS)
+
+distclean: clean

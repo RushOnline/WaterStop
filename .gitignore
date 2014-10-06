@@ -27,8 +27,11 @@
 *.out
 *.app
 
+*.swp
 /.cproject
 /.project
 /.settings
 
 /datasheets
+/WaterStop
+/WaterStop.hex
