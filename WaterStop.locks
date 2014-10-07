@@ -1,0 +1,3 @@
+MCU=attiny13
+LB=0x3
+summary=
