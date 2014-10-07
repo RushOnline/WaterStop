@@ -22,67 +22,61 @@
 #define F_CPU 1200000UL
 #include <util/delay.h>
 
-#define PO_RELAY	(_BV(PB3))		// pin #2
-#define PI_BUTTON	(_BV(PINB4))	// pin #3
-#define PO_LED		(_BV(PB0))		// pin #5
+#include "pin_macros.h"
 
-#define button_pressed 			(!(PINB & PI_BUTTON))
-#define relay_on				(PORTB |= PO_RELAY)
-#define relay_off				(PORTB &= ~PO_RELAY)
+#define BUTTON	B,PINB4,H
+#define RELAY	B,PB3,H
 
-#define led_on				(PORTB |= PO_LED)
-#define led_off				(PORTB &= ~PO_LED)
-
-#define	TICK					(10)				// 10ms loop
+#define	TICK					1UL
 #define MS(MS_TIME)				((MS_TIME)/TICK)
 #define S(S_TIME)				(S_TIME * (MS(1000)))
 
-#define SHORTPRESS				MS(200)
-#define	LONGPRESS				MS(1000)
-#define MAXPRESS				MS(2000)
-#define MAXWATER				S(90)			// water flow time hard limit
+#define SHORTPRESS				MS(50)
+#define	LONGPRESS				MS(2000)
+#define LONGLONGPRESS			MS(2000)
+#define MAX_WATER_TIME			S(90)			// water flow time hard limit
 
-unsigned int relay_ticks_left = 0;
-unsigned int button_ticks_pressed = 0;
-unsigned int relay_ticks = S(5);
+unsigned long relay_time_left = 0;
+unsigned long button_pressed_time = 0;
+unsigned long relay_time = S(5);
 unsigned char relay_learning = 0;
 
 int main(void)
 {
-	DDRB |= (PO_RELAY | PO_LED);
-	PORTB |= (PI_BUTTON); // enable button pullup
+	DRIVER(BUTTON,IN);
+	DRIVER(BUTTON,PULLUP); 	// not for sensor
+
+	DRIVER(RELAY,OUT);
 
 	while (1) {
-		if (button_pressed) {
+		if (ACTIVE(BUTTON)) {
 			// Handle long press
-			if ((button_ticks_pressed >= LONGPRESS) && (!relay_learning)) {
-				relay_on;
-				relay_ticks_left = MAXWATER;
+			if ((button_pressed_time >= LONGPRESS) && (!relay_learning)) {
+				ON(RELAY);
+				relay_time_left = MAX_WATER_TIME;
 				relay_learning = 1;
-				led_on;
 			} else {
 				// Prevent counter overflow
-				if (button_ticks_pressed < MAXPRESS) button_ticks_pressed++;
+				if (button_pressed_time < LONGLONGPRESS) button_pressed_time++;
 			}
 		} else {
-			if ((button_ticks_pressed >= SHORTPRESS) && (button_ticks_pressed < LONGPRESS)) {
+			if ((button_pressed_time >= SHORTPRESS) && (button_pressed_time < LONGPRESS)) {
 				if (relay_learning) {
-					relay_off;
+					OFF(RELAY);
 					relay_learning = 0;
-					relay_ticks = MAXWATER - relay_ticks_left;
-					led_off;
+					relay_time = MAX_WATER_TIME - relay_time_left;
 				} else {
-					relay_on;
-					relay_ticks_left = relay_ticks;
+					ON(RELAY);
+					relay_time_left = relay_time;
 				}
 			}
-			button_ticks_pressed = 0;
+			button_pressed_time = 0;
 		}
 
-		if (relay_ticks_left) {
-			relay_ticks_left--;
-			if (!relay_ticks_left) {
-				relay_off;
+		if (relay_time_left) {
+			relay_time_left--;
+			if (!relay_time_left) {
+				OFF(RELAY);
 			}
 		}
 

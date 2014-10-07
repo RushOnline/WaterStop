@@ -15,12 +15,15 @@ CPPFLAGS += $(foreach includedir,$(program_INCLUDE_DIRS),-I$(includedir))
 LDFLAGS += $(foreach librarydir,$(program_LIBRARY_DIRS),-L$(librarydir))
 LDFLAGS += $(foreach library,$(program_LIBRARIES),-l$(library))
 
-.PHONY: all hex clean distclean
+.PHONY: all hex flash clean distclean
 
 all: $(program_NAME)
 
 hex: all
 	avr-objcopy -O ihex $(program_NAME) $(program_NAME).hex
+
+flash: hex
+	avrdude -p t13 -b 19200 -c avrisp -e -U flash:w:WaterStop.hex
 
 $(program_NAME): $(program_OBJS)
 	$(LINK.cc) $(program_OBJS) -o $(program_NAME)
